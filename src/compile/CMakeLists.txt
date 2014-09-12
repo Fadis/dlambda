@@ -1,0 +1,64 @@
+add_library(
+  dlambda_compiler
+  SHARED
+  unary_plus.cpp
+  negate.cpp
+  dereference.cpp
+  complement.cpp
+  logical_not.cpp
+  address_of.cpp
+  pre_inc.cpp
+  pre_dec.cpp
+  post_inc.cpp
+  post_dec.cpp
+  plus.cpp
+  minus.cpp
+  multiplies.cpp
+  divides.cpp
+  modulus.cpp
+  shift_left.cpp
+  shift_right.cpp
+  less.cpp
+  greater.cpp
+  less_equal.cpp
+  greater_equal.cpp
+  equal_to.cpp
+  not_equal_to.cpp
+  logical_or.cpp
+  logical_and.cpp
+  logical_xor.cpp
+  bitwise_or.cpp
+  bitwise_and.cpp
+  bitwise_xor.cpp
+  assign.cpp
+  usual_arithmetic_conversion.cpp
+  integral_promotion.cpp
+  static_cast.cpp
+  implicit_cast.cpp
+  const_cast.cpp
+  reinterpret_cast.cpp
+  c_style_cast.cpp
+  native_cast.cpp
+  arithmetic_cast.cpp
+  reference_cast.cpp
+  remove_const_cast.cpp
+  array_cast.cpp
+  address_cast.cpp
+  type_only_cast.cpp
+  remove_reference.cpp
+  address_to_pointer.cpp
+  get_llvm_type.cpp
+  get_llvm_function_type.cpp
+  get_llvm_constant_value.cpp
+  compiler.cpp
+)
+target_link_libraries( dlambda_compiler ${Boost_LIBRARIES} dlambda_type_traits dlambda_proto )
+set_target_properties( dlambda_compiler PROPERTIES
+	  VERSION 0.0.1
+	  SOVERSION 0.0.1
+)
+add_executable(
+  compile_test
+  test.cpp
+)
+target_link_libraries( compile_test ${Boost_LIBRARIES} ${LLVM_ALL_LIBS} dlambda_type_traits dlambda_proto dlambda_compiler )

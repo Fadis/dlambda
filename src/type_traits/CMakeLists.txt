@@ -1,0 +1,69 @@
+add_library(
+  dlambda_type_traits
+  SHARED
+  add_const.cpp
+  add_cv.cpp
+  add_lvalue_reference.cpp
+  add_reference.cpp
+  add_rvalue_reference.cpp
+  add_pointer.cpp
+  add_volatile.cpp
+  conditional.cpp
+  extent.cpp
+  floating_point_promotion.cpp
+  function_traits.cpp
+  has_bit_and.cpp
+  has_trivial_assign.cpp
+  has_trivial_constructor.cpp
+  has_trivial_copy.cpp
+  has_trivial_destructor.cpp
+  integral_promotion.cpp
+  is_promotable.cpp
+  usual_arithmetic_conversion.cpp
+  is_aggregated.cpp
+  is_arithmetic.cpp
+  is_array.cpp
+  is_class.cpp
+  is_compound.cpp
+  is_const.cpp
+  is_ordered.cpp
+  is_copy_constructible.cpp
+  is_empty.cpp
+  is_enum.cpp
+  is_floating_point.cpp
+  is_function.cpp
+  is_fundamental.cpp
+  is_integral.cpp
+  is_lvalue_reference.cpp
+  is_member_function_pointer.cpp
+  is_member_object_pointer.cpp
+  is_member_pointer.cpp
+  is_nothrow_move_assignable.cpp
+  is_nothrow_move_constructible.cpp
+  is_object.cpp
+  is_pod.cpp
+  is_pointer.cpp
+  is_polymorphic.cpp
+  is_reference.cpp
+  is_rvalue_reference.cpp
+  is_same.cpp
+  is_scalar.cpp
+  is_signed.cpp
+  is_stateless.cpp
+  is_union.cpp
+  is_unsigned.cpp
+  is_void.cpp
+  is_volatile.cpp
+  match.cpp
+  remove_const.cpp
+  remove_reference.cpp
+  remove_pointer.cpp
+  remove_array.cpp
+  remove_volatile.cpp
+  remove_cv.cpp
+)
+target_link_libraries( dlambda_type_traits ${Boost_LIBRARIES} ${LLVM_LIBS} )
+set_target_properties( dlambda_type_traits PROPERTIES
+	  VERSION 0.0.1
+	  SOVERSION 0.0.1
+	)
