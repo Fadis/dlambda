@@ -31,6 +31,7 @@ add_library(
   bitwise_and.cpp
   bitwise_xor.cpp
   assign.cpp
+  subscript.cpp
   usual_arithmetic_conversion.cpp
   integral_promotion.cpp
   static_cast.cpp
@@ -62,3 +63,8 @@ add_executable(
   test.cpp
 )
 target_link_libraries( compile_test ${Boost_LIBRARIES} ${LLVM_ALL_LIBS} dlambda_type_traits dlambda_proto dlambda_compiler )
+add_executable(
+  compile_test2
+  test2.cpp
+)
+target_link_libraries( compile_test2 ${Boost_LIBRARIES} ${LLVM_ALL_LIBS} dlambda_type_traits dlambda_proto dlambda_compiler )

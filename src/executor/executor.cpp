@@ -22,6 +22,7 @@
 
 #include <dlambda/compiler/compiler.hpp>
 #include <dlambda/executor/executor.hpp>
+#include <dlambda/exceptions.hpp>
 
 namespace dlambda {
   namespace executor {
@@ -31,16 +32,16 @@ namespace dlambda {
       std::string error;
       const llvm::Target * const target = llvm::TargetRegistry::lookupTarget( triple, error );
       if( !error.empty() ) {
-        std::cout << error << std::endl;
+        std::cerr << error << std::endl;
+        throw exceptions::unsupported_target_machine();
       }
       llvm::TargetOptions target_opts;
       target_opts.UseInitArray = 0;
       target_opts.UseSoftFloat = 0;
       target_opts.FloatABIType = llvm::FloatABI::Hard;
       const std::shared_ptr< llvm::TargetMachine > target_machine( target->createTargetMachine( triple, llvm::sys::getHostCPUName(), "", target_opts ) );
-      if( !target_machine ) {
-        std::cout << "unable to create target machine." << std::endl;
-      }
+      if( !target_machine )
+        throw exceptions::unsupported_target_machine();
       const llvm::DataLayout *layout = target_machine->getDataLayout();
       const std::shared_ptr< llvm::LLVMContext > &context_ = context;
       std::shared_ptr< std::string > error_message( new std::string );
@@ -50,18 +51,17 @@ namespace dlambda {
       );
       llvm_module->setTargetTriple( triple );
       llvm_module->setDataLayout( layout->getStringRepresentation() );
-      llvm_module->dump();
       if( !llvm_module )
-        throw -1;
+        throw exceptions::invalid_module();
       std::shared_ptr< llvm::EngineBuilder > builder(
         new llvm::EngineBuilder( llvm_module.get() ),
         std::bind( &module::deleteBuilder, std::placeholders::_1, engine, error_message, llvm_module, context )
       );
+      if( !builder )
+        throw exceptions::internal_compiler_error();
       builder->setJITMemoryManager(
         llvm::JITMemoryManager::CreateDefaultMemManager()
       );
-      if( !builder )
-        throw -1;
       builder->setUseMCJIT( true );
       builder->setErrorStr( error_message.get() );
       builder->setEngineKind( llvm::EngineKind::JIT );
@@ -77,14 +77,16 @@ namespace dlambda {
         builder->create(),
         []( llvm::ExecutionEngine* ) {}
       );
-      std::cout << *error_message << std::endl;
       if( !engine )
-        throw -1;
+        throw exceptions::internal_compiler_error();
       engine->RegisterJITEventListener( llvm::JITEventListener::createOProfileJITEventListener() );
-      engine->DisableLazyCompilation( true );
-      engine->runStaticConstructorsDestructors( false );
-      std::cout << *error_message << std::endl;
+//      engine->DisableLazyCompilation( true );
+      if( !error_message->empty() ) {
+        std::cerr << *error_message << std::endl;
+        throw exceptions::llvm_compilation_failed();
+      }
       engine->finalizeObject();
+      engine->runStaticConstructorsDestructors( false );
     }
     void module::deleteBuilder(
       llvm::EngineBuilder *builder,

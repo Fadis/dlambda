@@ -7,7 +7,7 @@
 #include <boost/mpl/or.hpp>
 #include <boost/mpl/not.hpp>
 #include <boost/utility/enable_if.hpp>
-#include <boost/preprocessor.hpp>
+#include <boost/preprocessor/seq/for_each.hpp>
 
 #include <dlambda/proto/operators.hpp>
 #include <dlambda/proto/node.hpp>

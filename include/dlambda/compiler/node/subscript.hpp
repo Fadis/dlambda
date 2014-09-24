@@ -16,9 +16,7 @@ namespace dlambda {
       const std::shared_ptr< ir_builder_t > &ir_builder,
       const expression &left,
       const expression &right
-    ) {
-      throw exceptions::not_implemented();
-    }
+    );
   }
 }
 

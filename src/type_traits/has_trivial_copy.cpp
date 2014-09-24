@@ -34,7 +34,6 @@ namespace dlambda {
     }
     bool has_trivial_copy( const type &type_ ) {
       return apply_visitor( detail::has_trivial_copy(), type_ );
-      throw -1;
     }
   }
 }

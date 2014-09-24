@@ -14,19 +14,9 @@ int main() {
     new llvm::LLVMContext()
   );
   dlambda::compiler::module module( llvm_context );
-  module.create_function< void( int&, int, int, int, int& ) >()[
-    if_( param( 1 ) > 10 )[
-      if_( param( 1 ) > 20 )[
-        param( 0 ) = param( 2 ) * 2
-      ]
-    ].else_[
-      param( 0 ) = param( 3 )
-    ],
-    while_( param( 0 ) < param( 1 ) )[
-      ++param( 0 )
-    ],
-    for_( param( 0 ) = 0, param( 0 ) != 10, ++param( 0 ) )[
-      param( 4 ) *= 3
+  module.create_function< void( int&, int&, int ) >()[
+    for_( param( 0 ) = 0, param( 0 ) != param( 2 ), ++param( 0 ) )[
+      param( 1 ) *= 2
     ]
   ];
   module.dump();

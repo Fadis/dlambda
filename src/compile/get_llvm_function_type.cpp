@@ -7,12 +7,6 @@
 #include <boost/variant/get.hpp>
 #include <boost/range/begin.hpp>
 #include <boost/range/end.hpp>
-#include <boost/type_traits/is_integral.hpp>
-#include <boost/type_traits/is_float.hpp>
-#include <boost/type_traits/is_const.hpp>
-#include <boost/type_traits/is_signed.hpp>
-#include <boost/type_traits/is_pointer.hpp>
-#include <boost/type_traits/is_array.hpp>
 #include <boost/type_traits/remove_pointer.hpp>
 #include <boost/mpl/is_sequence.hpp>
 #include <boost/fusion/include/mpl.hpp>
@@ -25,7 +19,9 @@
 #include <llvm/ADT/StringRef.h>
 #include <dlambda/type.hpp>
 #include <dlambda/get_type.hpp>
+#include <dlambda/type_traits/is_function.hpp>
 #include <dlambda/compiler/get_llvm_type.hpp>
+#include <dlambda/exceptions.hpp>
 
 namespace dlambda {
   namespace compiler {
@@ -33,8 +29,8 @@ namespace dlambda {
       const std::shared_ptr< llvm::LLVMContext > &context,
       const type &type_
     ) {
-      if( type_.which() != 18 )
-        throw -1;
+      if( !type_traits::is_function( type_ ) )
+        throw exceptions::unexpected_type();
       const types::function< type > &function_type = boost::get< types::function< type > >( type_ );
       std::shared_ptr< llvm::LLVMContext > context_ = context;
       std::shared_ptr< std::vector< std::shared_ptr< llvm::Type > > > argument_types(

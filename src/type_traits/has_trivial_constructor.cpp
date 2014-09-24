@@ -34,7 +34,6 @@ namespace dlambda {
     }
     bool has_trivial_constructor( const type &type_ ) {
       return apply_visitor( detail::has_trivial_constructor(), type_ );
-      throw -1;
     }
   }
 }

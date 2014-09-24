@@ -32,7 +32,6 @@ namespace dlambda {
       const std::shared_ptr< ir_builder_t > &ir_builder,
       const expression &left_expr, const expression &right_expr
     ) {
-      std::cout << "assign" << std::endl;
       if( type_traits::is_lvalue_reference( left_expr.type() ) ) {
         const auto calcurated = implicit_cast( context, ir_builder, type_traits::remove_reference( left_expr.type() ), right_expr );
         ir_builder->CreateStore( calcurated.llvm_value().get(), left_expr.llvm_value().get() );

@@ -23,6 +23,7 @@
 #include <dlambda/compiler/node/remove_reference.hpp>
 #include <dlambda/compiler/node/implicit_cast.hpp>
 #include <dlambda/compiler/usual_arithmetic_conversion.hpp>
+#include <dlambda/exceptions.hpp>
 
 namespace dlambda {
   namespace compiler {
@@ -41,32 +42,7 @@ namespace dlambda {
             type_traits::meta::is_arithmetic_convertible< Left, Right >
           >::type* = 0
         ) const {
-          const auto converted = usual_arithmetic_conversion( context, ir_builder, left, right );
-          const std::shared_ptr< llvm::LLVMContext > &context_ = context;
-          if( type_traits::is_floating_point( converted.first.type() ) ) {
-            return expression(
-              converted.first.type(), converted.first.llvm_type(),
-              std::shared_ptr< llvm::Value >(
-                ir_builder->CreateFAdd(
-                  converted.first.llvm_value().get(),
-                  converted.second.llvm_value().get()
-                ),
-                [context_]( llvm::Value* ){}
-              )
-            );
-          }
-          else {
-            return expression(
-              converted.first.type(), converted.first.llvm_type(),
-              std::shared_ptr< llvm::Value >(
-                ir_builder->CreateAdd(
-                  converted.first.llvm_value().get(),
-                  converted.second.llvm_value().get()
-                ),
-                [context_]( llvm::Value* ){}
-              )
-            );
-          }
+          return generate_arithmetic_plus();
         }
         template< typename Left, typename Right > 
         expression operator()(
@@ -78,20 +54,7 @@ namespace dlambda {
             >
           >::type* = 0
         ) const {
-          const expression converted_index = implicit_cast( context, ir_builder, type_traits::integral_promotion( left.type() ), left );
-          const auto pointer_type = type_traits::remove_cv( right.type() );
-          const auto llvm_type = get_llvm_type( context, pointer_type );
-          const std::shared_ptr< llvm::LLVMContext > &context_ = context;
-          return expression(
-            pointer_type, llvm_type,
-            std::shared_ptr< llvm::Value >(
-              ir_builder->CreateInBoundsGEP(
-                right.llvm_value().get(),
-                converted_index.llvm_value().get()
-              ),
-              [context_]( llvm::Value* ){}
-            )
-          );
+          return generate_pointer_plus_left();
         }
         template< typename Left, typename Right > 
         expression operator()(
@@ -103,20 +66,7 @@ namespace dlambda {
             >
           >::type* = 0
         ) const {
-          const expression converted_index = implicit_cast( context, ir_builder, type_traits::integral_promotion( right.type() ), right );
-          const auto pointer_type = type_traits::remove_cv( left.type() );
-          const auto llvm_type = get_llvm_type( context, pointer_type );
-          const std::shared_ptr< llvm::LLVMContext > &context_ = context;
-          return expression(
-            pointer_type, llvm_type,
-            std::shared_ptr< llvm::Value >(
-              ir_builder->CreateInBoundsGEP(
-                left.llvm_value().get(),
-                converted_index.llvm_value().get()
-              ),
-              [context_]( llvm::Value* ){}
-            )
-          );
+          return generate_pointer_plus_right();
         }
         template< typename Left, typename Right >
         expression operator()(
@@ -137,14 +87,77 @@ namespace dlambda {
             >
           >::type* = 0
         ) const {
-          throw -1;
+          throw exceptions::invalid_expression();
         }
       private:
+        expression generate_arithmetic_plus() const;
+        expression generate_pointer_plus_left() const;
+        expression generate_pointer_plus_right() const;
         std::shared_ptr< llvm::LLVMContext > context;
         std::shared_ptr< ir_builder_t > ir_builder;
         expression left;
         expression right;
       };
+      expression plus::generate_arithmetic_plus() const {
+        const auto converted = usual_arithmetic_conversion( context, ir_builder, left, right );
+        const std::shared_ptr< llvm::LLVMContext > &context_ = context;
+        if( type_traits::is_floating_point( converted.first.type() ) ) {
+          return expression(
+            converted.first.type(), converted.first.llvm_type(),
+            std::shared_ptr< llvm::Value >(
+              ir_builder->CreateFAdd(
+                converted.first.llvm_value().get(),
+                converted.second.llvm_value().get()
+              ),
+              [context_]( llvm::Value* ){}
+            )
+          );
+        }
+        else {
+          return expression(
+            converted.first.type(), converted.first.llvm_type(),
+            std::shared_ptr< llvm::Value >(
+              ir_builder->CreateAdd(
+                converted.first.llvm_value().get(),
+                converted.second.llvm_value().get()
+              ),
+              [context_]( llvm::Value* ){}
+            )
+          );
+        }
+      }
+      expression plus::generate_pointer_plus_left() const {
+        const expression converted_index = implicit_cast( context, ir_builder, type_traits::integral_promotion( left.type() ), left );
+        const auto pointer_type = type_traits::remove_cv( right.type() );
+        const auto llvm_type = get_llvm_type( context, pointer_type );
+        const std::shared_ptr< llvm::LLVMContext > &context_ = context;
+        return expression(
+          pointer_type, llvm_type,
+          std::shared_ptr< llvm::Value >(
+            ir_builder->CreateInBoundsGEP(
+              right.llvm_value().get(),
+              converted_index.llvm_value().get()
+            ),
+            [context_]( llvm::Value* ){}
+          )
+        );
+      }
+      expression plus::generate_pointer_plus_right() const {
+        const expression converted_index = implicit_cast( context, ir_builder, type_traits::integral_promotion( right.type() ), right );
+        const auto pointer_type = type_traits::remove_cv( left.type() );
+        const auto llvm_type = get_llvm_type( context, pointer_type );
+        const std::shared_ptr< llvm::LLVMContext > &context_ = context;
+        return expression(
+          pointer_type, llvm_type,
+          std::shared_ptr< llvm::Value >(
+            ir_builder->CreateInBoundsGEP(
+              left.llvm_value().get(),
+              converted_index.llvm_value().get()
+            ),
+            [context_]( llvm::Value* ){}
+          )
+        );
+      }
     }
     expression plus(
       const std::shared_ptr< llvm::LLVMContext > &context,

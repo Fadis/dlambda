@@ -7,7 +7,12 @@
 #include <dlambda/proto/node/literal.hpp>
 #include <dlambda/proto/node/placeholder.hpp>
 #include <boost/proto/tags.hpp>
-#include <boost/preprocessor.hpp>
+#include <boost/preprocessor/tuple/elem.hpp>
+#include <boost/preprocessor/comma.hpp>
+#include <boost/preprocessor/comparison/equal.hpp>
+#include <boost/preprocessor/if.hpp>
+#include <boost/preprocessor/seq/size.hpp>
+#include <boost/preprocessor/seq/for_each.hpp>
 
 #define DLAMBDA_PROTO_OUTSIDE 0
 #define DLAMBDA_PROTO_INSIDE  1

@@ -7,6 +7,7 @@
 #include <dlambda/type.hpp>
 #include <dlambda/type_traits/integral_promotion.hpp>
 #include <dlambda/type_traits/usual_arithmetic_conversion.hpp>
+#include <dlambda/exceptions.hpp>
 
 namespace dlambda {
   namespace type_traits {
@@ -19,7 +20,7 @@ namespace dlambda {
         type operator()( const types::enum_ &left, const types::enum_ right ) const {
           if( left.name == right.name )
             return types::enum_( false, false, left.length, left.signed_, left.name );
-          else throw -1;
+          else throw exceptions::invalid_type_conversion();
         }
         type operator()( const types::bool_ &left, const types::bool_ &right ) const {
           return integral_conversion( left, right );
@@ -69,7 +70,7 @@ namespace dlambda {
         type operator()(
           const types::float_ &, const types::enum_ &
         ) const {
-          throw -1;
+          throw exceptions::invalid_type_conversion();
         }
         template< typename Other >
         type operator()(
@@ -86,7 +87,7 @@ namespace dlambda {
         type operator()(
           const types::enum_ &, const types::float_ &
         ) const {
-          throw -1;
+          throw exceptions::invalid_type_conversion();
         }
         template< typename Left, typename Right >
         type operator()(
@@ -102,7 +103,7 @@ namespace dlambda {
             >
           >::type* = 0
         ) const {
-          throw -1;
+          throw exceptions::invalid_type_conversion();
         }
       private:
         template< typename Left, typename Right >

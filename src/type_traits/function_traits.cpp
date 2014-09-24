@@ -5,6 +5,7 @@
 #include <boost/variant/static_visitor.hpp>
 #include <dlambda/type.hpp>
 #include <dlambda/type_traits/function_traits.hpp>
+#include <dlambda/exceptions.hpp>
 
 namespace dlambda {
   namespace type_traits {
@@ -22,7 +23,7 @@ namespace dlambda {
             >
           >::type* = 0
         ) const {
-          throw -1;
+          throw exceptions::unexpected_type();
         }
       };
     }

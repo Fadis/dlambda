@@ -2,7 +2,9 @@
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
-#include <boost/preprocessor.hpp>
+#include <boost/preprocessor/if.hpp>
+#include <boost/preprocessor/comparison/equal.hpp>
+#include <boost/preprocessor/seq/for_each.hpp>
 #include <boost/spirit/include/karma.hpp>
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Module.h>
@@ -15,6 +17,7 @@
 #include <dlambda/type_traits/is_arithmetic.hpp>
 #include <dlambda/type_traits/is_pointer.hpp>
 #include <dlambda/type_traits/is_reference.hpp>
+#include <dlambda/type_traits/is_void.hpp>
 #include <dlambda/compiler/get_llvm_type.hpp>
 #include <dlambda/compiler/get_llvm_constant_value.hpp>
 #include <dlambda/compiler/ir_builder.hpp>
@@ -25,6 +28,7 @@
 #include <dlambda/compiler/node/const_cast.hpp>
 #include <dlambda/compiler/node/reinterpret_cast.hpp>
 #include <dlambda/compiler/node/c_style_cast.hpp>
+#include <dlambda/compiler/node/implicit_cast.hpp>
 #include <dlambda/compiler/node/unary_plus.hpp>
 #include <dlambda/compiler/node/negate.hpp>
 #include <dlambda/compiler/node/address_of.hpp>
@@ -64,11 +68,13 @@
 #include <dlambda/compiler/node/bitwise_and_assign.hpp>
 #include <dlambda/compiler/node/bitwise_xor_assign.hpp>
 #include <dlambda/compiler/node/assign.hpp>
+#include <dlambda/compiler/node/subscript.hpp>
 #include <dlambda/compiler/node/mem_ptr.hpp>
 #include <dlambda/compiler/node/comma.hpp>
 #include <dlambda/compiler/get_llvm_constant_value.hpp>
 #include <dlambda/compiler/get_llvm_function_type.hpp>
 #include <dlambda/compiler/compiler.hpp>
+#include <dlambda/exceptions.hpp>
 
 #define DLAMBDA_COMPILER_UNARY_OPERATOR( s, data, oper ) \
   evaluator.push( \
@@ -116,7 +122,7 @@ namespace dlambda {
       const types::function< dlambda::type > &function_type_
     ) : function_name( function_name_ ),
     context( context__ ), ir_builder( ir_builder_ ), module( module_ ), evaluator( function_type_.args_type ),
-    llvm_function_type( get_llvm_function_type( context__, function_type_ ) ), function_type( function_type_ ), if_count( 0u ), while_count( 0u ), for_count( 0u ) {
+    llvm_function_type( get_llvm_function_type( context__, function_type_ ) ), function_type( function_type_ ) {
       const std::shared_ptr< llvm::LLVMContext > &context_ = context;
       llvm_function.reset(
         llvm::Function::Create( llvm_function_type.get(), llvm::Function::ExternalLinkage, function_name.c_str() ),
@@ -149,7 +155,7 @@ namespace dlambda {
           const auto &placeholder_ = boost::get< proto::placeholder >( node_.get() );
           const auto range = boost::make_iterator_range( llvm_function->arg_begin(), llvm_function->arg_end() );
           if( placeholder_.index() >= size_t( boost::distance( range ) ) )
-            throw -1;
+            throw exceptions::argument_out_of_range();
           return expression(
             function_type.args_type[ placeholder_.index() ],
             std::pair< std::shared_ptr<llvm::Type>, std::shared_ptr<llvm::Value> >(
@@ -172,6 +178,15 @@ namespace dlambda {
         unused,
         DLAMBDA_PROTO_BINARY_OPERATORS_WITHOUT_SUBSCRIPT
       )
+      evaluator.push(
+        proto::any()[ proto::any() ],
+        [&] ( const proto::eval< expression > &, const proto::node &node_ ) -> boost::optional< expression > {
+          const auto &expr = boost::get< proto::node::binary_operator >( node_.get() );
+          const auto left = evaluator( expr.args()[ 0 ] );
+          const auto right = evaluator( expr.args()[ 1 ] );
+          return subscript( context, ir_builder, left, right );
+        }
+      );
       evaluator.push(
         ( proto::any(), proto::any() ),
         [&] ( const proto::eval< expression > &, const proto::node &node_ ) -> boost::optional< expression > {
@@ -217,11 +232,9 @@ namespace dlambda {
         [&] ( const proto::eval< expression > &, const proto::node &node_ ) -> boost::optional< expression > {
           const auto &expr = boost::get< proto::node::if_else >( node_.get() );
           namespace karma = boost::spirit::karma;
-          std::string count_in_str;
-          karma::generate( std::back_inserter( count_in_str ), karma::uint_, ++if_count );
-          const std::string if_then_name = std::string( "if.then" ) + count_in_str;
-          const std::string if_else_name = std::string( "if.else" ) + count_in_str;
-          const std::string if_end_name = std::string( "if.end" ) + count_in_str;
+          const std::string if_then_name = std::string( "if.then" );
+          const std::string if_else_name = std::string( "if.else" );
+          const std::string if_end_name = std::string( "if.end" );
           const auto condition = evaluator( expr.condition() );
           llvm_basic_block.emplace_back(
             llvm::BasicBlock::Create( *context, if_then_name.c_str(), llvm_function.get() ),
@@ -256,12 +269,9 @@ namespace dlambda {
         [&] ( const proto::eval< expression > &, const proto::node &node_ ) -> boost::optional< expression > {
           const auto &expr = boost::get< proto::node::while_ >( node_.get() );
           namespace karma = boost::spirit::karma;
-          std::string count_in_str;
-          karma::generate( std::back_inserter( count_in_str ), karma::uint_, ++if_count );
-          const std::string while_cond_name = std::string( "while.cond" ) + count_in_str;
-          const std::string while_body_name = std::string( "while.body" ) + count_in_str;
-          const std::string while_end_name = std::string( "while.end" ) + count_in_str;
-          const auto condition = evaluator( expr.condition() );
+          const std::string while_cond_name = std::string( "while.cond" );
+          const std::string while_body_name = std::string( "while.body" );
+          const std::string while_end_name = std::string( "while.end" );
           llvm_basic_block.emplace_back(
             llvm::BasicBlock::Create( *context, while_cond_name.c_str(), llvm_function.get() ),
             [context_]( llvm::BasicBlock* ){}
@@ -279,6 +289,7 @@ namespace dlambda {
           const auto while_end_block = llvm_basic_block.back();
           ir_builder->CreateBr( while_cond_block.get() );
           ir_builder->SetInsertPoint( while_cond_block.get() );
+          const auto condition = evaluator( expr.condition() );
           ir_builder->CreateCondBr( condition.llvm_value().get(), while_body_block.get(), while_end_block.get() );
           ir_builder->SetInsertPoint( while_body_block.get() );
           evaluator( expr.if_true() );
@@ -294,13 +305,10 @@ namespace dlambda {
         [&] ( const proto::eval< expression > &, const proto::node &node_ ) -> boost::optional< expression > {
           const auto &expr = boost::get< proto::node::for_ >( node_.get() );
           namespace karma = boost::spirit::karma;
-          std::string count_in_str;
-          karma::generate( std::back_inserter( count_in_str ), karma::uint_, ++if_count );
-          const std::string for_cond_name = std::string( "for.cond" ) + count_in_str;
-          const std::string for_body_name = std::string( "for.body" ) + count_in_str;
-          const std::string for_inc_name = std::string( "for.inc" ) + count_in_str;
-          const std::string for_end_name = std::string( "for.end" ) + count_in_str;
-          const auto condition = evaluator( expr.condition() );
+          const std::string for_cond_name = std::string( "for.cond" );
+          const std::string for_body_name = std::string( "for.body" );
+          const std::string for_inc_name = std::string( "for.inc" );
+          const std::string for_end_name = std::string( "for.end" );
           llvm_basic_block.emplace_back(
             llvm::BasicBlock::Create( *context, for_cond_name.c_str(), llvm_function.get() ),
             [context_]( llvm::BasicBlock* ){}
@@ -312,7 +320,7 @@ namespace dlambda {
           );
           const auto for_body_block = llvm_basic_block.back();
           llvm_basic_block.emplace_back(
-            llvm::BasicBlock::Create( *context, for_end_name.c_str(), llvm_function.get() ),
+            llvm::BasicBlock::Create( *context, for_inc_name.c_str(), llvm_function.get() ),
             [context_]( llvm::BasicBlock* ){}
           );
           const auto for_inc_block = llvm_basic_block.back();
@@ -324,6 +332,7 @@ namespace dlambda {
           evaluator( expr.initialize() );
           ir_builder->CreateBr( for_cond_block.get() );
           ir_builder->SetInsertPoint( for_cond_block.get() );
+          const auto condition = evaluator( expr.condition() );
           ir_builder->CreateCondBr( condition.llvm_value().get(), for_body_block.get(), for_end_block.get() );
           ir_builder->SetInsertPoint( for_body_block.get() );
           evaluator( expr.if_true() );
@@ -337,6 +346,18 @@ namespace dlambda {
           return expression( type, llvm_type, std::shared_ptr< llvm::Value >( nullptr ) ); 
         }
       );
+    }
+    void function::operator[]( const proto::node &expr ) const {
+      ir_builder->SetInsertPoint( llvm_basic_block.back().get() );
+      const auto final_value = evaluator( expr );
+      if( function_type.result_type == final_value.type() )
+        ir_builder->CreateRet( final_value.llvm_value().get() );
+      else if( !type_traits::is_void( function_type.result_type ) ) {
+        const auto converted_final_value = implicit_cast( context, ir_builder, function_type.result_type, final_value );
+        ir_builder->CreateRet( converted_final_value.llvm_value().get() );
+      }
+      else
+        ir_builder->CreateRetVoid();
     }
   }
 }

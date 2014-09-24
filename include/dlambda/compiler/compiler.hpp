@@ -23,13 +23,7 @@ namespace dlambda {
       );
       function( const function& ) = default;
       function( function&& ) = default;
-      void operator[]( const proto::node &expr ) const {
-        ir_builder->SetInsertPoint( llvm_basic_block.back().get() );
-        const auto final_value = evaluator( expr ).llvm_value();
-        ir_builder->CreateRet(
-          final_value.get()
-        );
-      }
+      void operator[]( const proto::node &expr ) const;
     private:
       std::string function_name;
       std::shared_ptr< llvm::LLVMContext > context;
@@ -40,9 +34,6 @@ namespace dlambda {
       proto::eval< expression > evaluator;
       std::shared_ptr< llvm::FunctionType > llvm_function_type;
       types::function< dlambda::type > function_type;
-      size_t if_count;
-      size_t while_count;
-      size_t for_count;
     };
     class module {
     public:

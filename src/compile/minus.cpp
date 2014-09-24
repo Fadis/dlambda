@@ -22,6 +22,7 @@
 #include <dlambda/compiler/ir_builder.hpp>
 #include <dlambda/compiler/node/remove_reference.hpp>
 #include <dlambda/compiler/node/implicit_cast.hpp>
+#include <dlambda/exceptions.hpp>
 
 namespace dlambda {
   namespace compiler {
@@ -43,62 +44,7 @@ namespace dlambda {
             >
           >::type* = 0
         ) const {
-          const auto result_type = type_traits::usual_arithmetic_conversion( left.type(), right.type() );
-          const expression converted_left = implicit_cast( context, ir_builder, result_type, left );
-          const expression converted_right = implicit_cast( context, ir_builder, result_type, right );
-          const auto llvm_type = get_llvm_type( context, result_type );
-          const std::shared_ptr< llvm::LLVMContext > &context_ = context;
-          if( type_traits::is_floating_point( result_type ) ) {
-            return expression(
-              result_type, llvm_type,
-              std::shared_ptr< llvm::Value >(
-                ir_builder->CreateFSub(
-                  converted_left.llvm_value().get(),
-                  converted_right.llvm_value().get()
-                ),
-                [context_]( llvm::Value* ){}
-              )
-            );
-          }
-          else {
-            return expression(
-              result_type, llvm_type,
-              std::shared_ptr< llvm::Value >(
-                ir_builder->CreateSub(
-                  converted_left.llvm_value().get(),
-                  converted_right.llvm_value().get()
-                ),
-                [context_]( llvm::Value* ){}
-              )
-            );
-          }
-        }
-        template< typename Left, typename Right > 
-        expression operator()(
-          const Left &, const Right &,
-          typename boost::enable_if<
-            boost::mpl::and_<
-              type_traits::meta::is_arithmetic_convertible< Left >,
-              type_traits::meta::is_pointer< Right >
-            >
-          >::type* = 0
-        ) const {
-          const expression converted_index = implicit_cast( context, ir_builder, type_traits::integral_promotion( left.type() ), left );
-          const auto pointer_type = type_traits::remove_cv( right.type() );
-          const auto llvm_type = get_llvm_type( context, pointer_type );
-          const std::shared_ptr< llvm::LLVMContext > &context_ = context;
-          return expression(
-            pointer_type, llvm_type,
-            std::shared_ptr< llvm::Value >(
-              ir_builder->CreateInBoundsGEP(
-                right.llvm_value().get(),
-                ir_builder->CreateNeg(
-                  converted_index.llvm_value().get()
-                )
-              ),
-              [context_]( llvm::Value* ){}
-            )
-          );
+          return generate_arithmetic_minus();
         }
         template< typename Left, typename Right > 
         expression operator()(
@@ -110,22 +56,7 @@ namespace dlambda {
             >
           >::type* = 0
         ) const {
-          const expression converted_index = implicit_cast( context, ir_builder, type_traits::integral_promotion( right.type() ), right );
-          const auto pointer_type = type_traits::remove_cv( left.type() );
-          const auto llvm_type = get_llvm_type( context, pointer_type );
-          const std::shared_ptr< llvm::LLVMContext > &context_ = context;
-          return expression(
-            pointer_type, llvm_type,
-            std::shared_ptr< llvm::Value >(
-              ir_builder->CreateInBoundsGEP(
-                left.llvm_value().get(),
-                ir_builder->CreateNeg(
-                  converted_index.llvm_value().get()
-                )
-              ),
-              [context_]( llvm::Value* ){}
-            )
-          );
+          return generate_pointer_minus();
         }
         template< typename Left, typename Right >
         expression operator()(
@@ -138,10 +69,6 @@ namespace dlambda {
                   type_traits::meta::is_arithmetic_convertible< Right >
                 >,
                 boost::mpl::and_<
-                  type_traits::meta::is_arithmetic_convertible< Left >,
-                  type_traits::meta::is_pointer< Right >
-                >,
-                boost::mpl::and_<
                   type_traits::meta::is_pointer< Left >,
                   type_traits::meta::is_arithmetic_convertible< Right >
                 >
@@ -149,14 +76,65 @@ namespace dlambda {
             >
           >::type* = 0
         ) const {
-          throw -1;
+          throw exceptions::invalid_expression();
         }
       private:
+        expression generate_arithmetic_minus() const;
+        expression generate_pointer_minus() const;
         std::shared_ptr< llvm::LLVMContext > context;
         std::shared_ptr< ir_builder_t > ir_builder;
         expression left;
         expression right;
       };
+      expression minus::generate_arithmetic_minus() const {
+        const auto result_type = type_traits::usual_arithmetic_conversion( left.type(), right.type() );
+        const expression converted_left = implicit_cast( context, ir_builder, result_type, left );
+        const expression converted_right = implicit_cast( context, ir_builder, result_type, right );
+        const auto llvm_type = get_llvm_type( context, result_type );
+        const std::shared_ptr< llvm::LLVMContext > &context_ = context;
+        if( type_traits::is_floating_point( result_type ) ) {
+          return expression(
+            result_type, llvm_type,
+            std::shared_ptr< llvm::Value >(
+              ir_builder->CreateFSub(
+                converted_left.llvm_value().get(),
+                converted_right.llvm_value().get()
+              ),
+              [context_]( llvm::Value* ){}
+            )
+          );
+        }
+        else {
+          return expression(
+            result_type, llvm_type,
+            std::shared_ptr< llvm::Value >(
+              ir_builder->CreateSub(
+                converted_left.llvm_value().get(),
+                converted_right.llvm_value().get()
+              ),
+              [context_]( llvm::Value* ){}
+            )
+          );
+        }
+      }
+      expression minus::generate_pointer_minus() const {
+        const expression converted_index = implicit_cast( context, ir_builder, type_traits::integral_promotion( right.type() ), right );
+        const auto pointer_type = type_traits::remove_cv( left.type() );
+        const auto llvm_type = get_llvm_type( context, pointer_type );
+        const std::shared_ptr< llvm::LLVMContext > &context_ = context;
+        return expression(
+          pointer_type, llvm_type,
+          std::shared_ptr< llvm::Value >(
+            ir_builder->CreateInBoundsGEP(
+              left.llvm_value().get(),
+              ir_builder->CreateNeg(
+                converted_index.llvm_value().get()
+              )
+            ),
+            [context_]( llvm::Value* ){}
+          )
+        );
+      }
     }
     expression minus(
       const std::shared_ptr< llvm::LLVMContext > &context,

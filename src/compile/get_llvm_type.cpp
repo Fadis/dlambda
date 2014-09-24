@@ -24,6 +24,7 @@
 #include <llvm/ADT/StringRef.h>
 #include <dlambda/type.hpp>
 #include <dlambda/get_type.hpp>
+#include <dlambda/exceptions.hpp>
 
 namespace dlambda {
   namespace compiler {
@@ -43,7 +44,7 @@ namespace dlambda {
       public:
         get_llvm_type( const std::shared_ptr< llvm::LLVMContext > &context_ ) : context( context_ ) {}
         std::shared_ptr< llvm::Type > operator()( const types::any_type& ) {
-          throw -1;
+          throw exceptions::unexpected_type();
         }
         std::shared_ptr< llvm::Type > operator()( const types::void_& ) {
           std::shared_ptr< llvm::LLVMContext > context_ = context;
@@ -95,7 +96,7 @@ namespace dlambda {
           else if( type_.length == 128u )
             return std::shared_ptr< llvm::Type >( llvm::Type::getFP128Ty( *context ), [context_]( llvm::Type* ){} );
           else
-            throw -1;
+            throw exceptions::unexpected_type();
         }
         std::shared_ptr< llvm::Type > operator()( const types::pointer< type > &type_ ) {
           std::shared_ptr< llvm::LLVMContext > context_ = context;
@@ -104,14 +105,14 @@ namespace dlambda {
         }
         std::shared_ptr< llvm::Type > operator()( const types::lref< type > &type_ ) {
           if( apply_visitor( is_reference(), type_.base ) )
-            throw -1;
+            throw exceptions::unexpected_type();
           std::shared_ptr< llvm::LLVMContext > context_ = context;
           const auto element_type = apply_visitor( *this, type_.base );
           return std::shared_ptr< llvm::Type >( llvm::PointerType::getUnqual( element_type.get() ), [context_,element_type]( llvm::Type* ){} );
         }
         std::shared_ptr< llvm::Type > operator()( const types::rref< type > &type_ ) {
           if( apply_visitor( is_reference(), type_.base ) )
-            throw -1;
+            throw exceptions::unexpected_type();
           std::shared_ptr< llvm::LLVMContext > context_ = context;
           const auto element_type = apply_visitor( *this, type_.base );
           return std::shared_ptr< llvm::Type >( llvm::PointerType::getUnqual( element_type.get() ), [context_,element_type]( llvm::Type* ){} );

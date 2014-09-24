@@ -43,73 +43,7 @@ namespace dlambda {
           >::type* = 0
         ) const {
           const auto converted = usual_arithmetic_conversion( context, ir_builder, left, right );
-          const std::shared_ptr< llvm::LLVMContext > &context_ = context;
-          const auto result_type = get_type< bool >();
-          const auto llvm_type = get_llvm_type( context, result_type );
-          if( type_traits::is_floating_point( converted.first.type() ) ) {
-            if( type_traits::is_ordered( converted.first.type() ) ) {
-              return expression(
-                result_type, llvm_type,
-                std::shared_ptr< llvm::Value >(
-                  ir_builder->CreateIntCast(
-                    ir_builder->CreateFCmpOGE(
-                      converted.first.llvm_value().get(),
-                      converted.second.llvm_value().get()
-                    ),
-                    llvm_type.get(), false
-                  ),
-                  [context_]( llvm::Value* ){}
-                )
-              );
-            }
-            else {
-              return expression(
-                result_type, llvm_type,
-                std::shared_ptr< llvm::Value >(
-                  ir_builder->CreateIntCast(
-                    ir_builder->CreateFCmpUGE(
-                      converted.first.llvm_value().get(),
-                      converted.second.llvm_value().get()
-                    ),
-                    llvm_type.get(), false
-                  ),
-                  [context_]( llvm::Value* ){}
-                )
-              );
-            }
-          }
-          else {
-            if( type_traits::is_signed( converted.first.type() ) ) {
-              return expression(
-                result_type, llvm_type,
-                std::shared_ptr< llvm::Value >(
-                  ir_builder->CreateIntCast(
-                    ir_builder->CreateICmpSGE(
-                      converted.first.llvm_value().get(),
-                      converted.second.llvm_value().get()
-                    ),
-                    llvm_type.get(), false
-                  ),
-                  [context_]( llvm::Value* ){}
-                )
-              );
-            }
-            else {
-              return expression(
-                result_type, llvm_type,
-                std::shared_ptr< llvm::Value >(
-                  ir_builder->CreateIntCast(
-                    ir_builder->CreateICmpUGE(
-                      converted.first.llvm_value().get(),
-                      converted.second.llvm_value().get()
-                    ),
-                    llvm_type.get(), false
-                  ),
-                  [context_]( llvm::Value* ){}
-                )
-              );
-            }
-          }
+          return generate( converted.first, converted.second );
         }
         template< typename Left, typename Right > 
         expression operator()(
@@ -123,11 +57,87 @@ namespace dlambda {
           throw exceptions::invalid_expression();
         }
       private:
+        expression generate(
+          const expression &left,
+          const expression &right
+        ) const;
         std::shared_ptr< llvm::LLVMContext > context;
         std::shared_ptr< ir_builder_t > ir_builder;
         expression left;
         expression right;
       };
+      expression greater_equal::generate(
+        const expression &left,
+        const expression &right
+      ) const {
+        const std::shared_ptr< llvm::LLVMContext > &context_ = context;
+        const auto result_type = get_type< bool >();
+        const auto llvm_type = get_llvm_type( context, result_type );
+        if( type_traits::is_floating_point( left.type() ) ) {
+          if( type_traits::is_ordered( left.type() ) ) {
+            return expression(
+              result_type, llvm_type,
+              std::shared_ptr< llvm::Value >(
+                ir_builder->CreateIntCast(
+                  ir_builder->CreateFCmpOGE(
+                    left.llvm_value().get(),
+                    right.llvm_value().get()
+                  ),
+                  llvm_type.get(), false
+                ),
+                [context_]( llvm::Value* ){}
+              )
+            );
+          }
+          else {
+            return expression(
+              result_type, llvm_type,
+              std::shared_ptr< llvm::Value >(
+                ir_builder->CreateIntCast(
+                  ir_builder->CreateFCmpUGE(
+                    left.llvm_value().get(),
+                    right.llvm_value().get()
+                  ),
+                  llvm_type.get(), false
+                ),
+                [context_]( llvm::Value* ){}
+              )
+            );
+          }
+        }
+        else {
+          if( type_traits::is_signed( left.type() ) ) {
+            return expression(
+              result_type, llvm_type,
+              std::shared_ptr< llvm::Value >(
+                ir_builder->CreateIntCast(
+                  ir_builder->CreateICmpSGE(
+                    left.llvm_value().get(),
+                    right.llvm_value().get()
+                  ),
+                  llvm_type.get(), false
+                ),
+                [context_]( llvm::Value* ){}
+              )
+            );
+          }
+          else {
+            return expression(
+              result_type, llvm_type,
+              std::shared_ptr< llvm::Value >(
+                ir_builder->CreateIntCast(
+                  ir_builder->CreateICmpUGE(
+                    left.llvm_value().get(),
+                    right.llvm_value().get()
+                  ),
+                  llvm_type.get(), false
+                ),
+                [context_]( llvm::Value* ){}
+              )
+            );
+          }
+        }
+      }
     }
     expression greater_equal(
       const std::shared_ptr< llvm::LLVMContext > &context,

@@ -45,33 +45,7 @@ namespace dlambda {
             >
           >::type* = 0
         ) const {
-          const auto converted_left = integral_promotion( context, ir_builder, left );
-          const auto converted_right = implicit_cast( context, ir_builder, left.type(), right );
-          const std::shared_ptr< llvm::LLVMContext > &context_ = context;
-          if( type_traits::is_signed( converted_left.type() ) ) {
-            return expression(
-              converted_left.type(), converted_left.llvm_type(),
-              std::shared_ptr< llvm::Value >(
-                ir_builder->CreateAShr(
-                  converted_left.llvm_value().get(),
-                  converted_right.llvm_value().get()
-                ),
-                [context_]( llvm::Value* ){}
-              )
-            );
-          }
-          else {
-            return expression(
-              converted_left.type(), converted_left.llvm_type(),
-              std::shared_ptr< llvm::Value >(
-                ir_builder->CreateLShr(
-                  converted_left.llvm_value().get(),
-                  converted_right.llvm_value().get()
-                ),
-                [context_]( llvm::Value* ){}
-              )
-            );
-          }
+          return generate();
         }
         template< typename Left, typename Right >
         expression operator()(
@@ -88,11 +62,41 @@ namespace dlambda {
           throw exceptions::invalid_expression();
         }
       private:
+        expression generate() const;
         std::shared_ptr< llvm::LLVMContext > context;
         std::shared_ptr< ir_builder_t > ir_builder;
         expression left;
         expression right;
       };
+      expression shift_right::generate() const {
+        const auto converted_left = integral_promotion( context, ir_builder, left );
+        const auto converted_right = implicit_cast( context, ir_builder, converted_left.type(), right );
+        const std::shared_ptr< llvm::LLVMContext > &context_ = context;
+        if( type_traits::is_signed( converted_left.type() ) ) {
+          return expression(
+            converted_left.type(), converted_left.llvm_type(),
+            std::shared_ptr< llvm::Value >(
+              ir_builder->CreateAShr(
+                converted_left.llvm_value().get(),
+                converted_right.llvm_value().get()
+              ),
+              [context_]( llvm::Value* ){}
+            )
+          );
+        }
+        else {
+          return expression(
+            converted_left.type(), converted_left.llvm_type(),
+            std::shared_ptr< llvm::Value >(
+              ir_builder->CreateLShr(
+                converted_left.llvm_value().get(),
+                converted_right.llvm_value().get()
+              ),
+              [context_]( llvm::Value* ){}
+            )
+          );
+        }
+      }
     }
     expression shift_right(
       const std::shared_ptr< llvm::LLVMContext > &context,

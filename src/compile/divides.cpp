@@ -23,6 +23,7 @@
 #include <dlambda/compiler/usual_arithmetic_conversion.hpp>
 #include <dlambda/compiler/node/remove_reference.hpp>
 #include <dlambda/compiler/node/implicit_cast.hpp>
+#include <dlambda/exceptions.hpp>
 
 namespace dlambda {
   namespace compiler {
@@ -42,43 +43,7 @@ namespace dlambda {
           >::type* = 0
         ) const {
           const auto converted = usual_arithmetic_conversion( context, ir_builder, left, right );
-          const std::shared_ptr< llvm::LLVMContext > &context_ = context;
-          if( type_traits::is_floating_point( converted.first.type() ) ) {
-            return expression(
-              converted.first.type(), converted.first.llvm_type(),
-              std::shared_ptr< llvm::Value >(
-                ir_builder->CreateFDiv(
-                  converted.first.llvm_value().get(),
-                  converted.second.llvm_value().get()
-                ),
-                [context_]( llvm::Value* ){}
-              )
-            );
-          }
-          else if( type_traits::is_signed( converted.first.type() ) ) {
-            return expression(
-              converted.first.type(), converted.first.llvm_type(),
-              std::shared_ptr< llvm::Value >(
-                ir_builder->CreateSDiv(
-                  converted.first.llvm_value().get(),
-                  converted.second.llvm_value().get()
-                ),
-                [context_]( llvm::Value* ){}
-              )
-            );
-          }
-          else {
-            return expression(
-              converted.first.type(), converted.first.llvm_type(),
-              std::shared_ptr< llvm::Value >(
-                ir_builder->CreateUDiv(
-                  converted.first.llvm_value().get(),
-                  converted.second.llvm_value().get()
-                ),
-                [context_]( llvm::Value* ){}
-              )
-            );
-          }
+          return generate( converted.first, converted.second );
         }
         template< typename Left, typename Right >
         expression operator()(
@@ -89,14 +54,60 @@ namespace dlambda {
             >
           >::type* = 0
         ) const {
-          throw -1;
+          throw exceptions::invalid_expression();
         }
       private:
+        expression generate(
+          const expression &left,
+          const expression &right
+        ) const;
         std::shared_ptr< llvm::LLVMContext > context;
         std::shared_ptr< ir_builder_t > ir_builder;
         expression left;
         expression right;
       };
+      expression divides::generate(
+        const expression &left,
+        const expression &right
+      ) const {
+        const std::shared_ptr< llvm::LLVMContext > &context_ = context;
+        if( type_traits::is_floating_point( left.type() ) ) {
+          return expression(
+            left.type(), left.llvm_type(),
+            std::shared_ptr< llvm::Value >(
+              ir_builder->CreateFDiv(
+                left.llvm_value().get(),
+                right.llvm_value().get()
+              ),
+              [context_]( llvm::Value* ){}
+            )
+          );
+        }
+        else if( type_traits::is_signed( left.type() ) ) {
+          return expression(
+            left.type(), left.llvm_type(),
+            std::shared_ptr< llvm::Value >(
+              ir_builder->CreateSDiv(
+                left.llvm_value().get(),
+                right.llvm_value().get()
+              ),
+              [context_]( llvm::Value* ){}
+            )
+          );
+        }
+        else {
+          return expression(
+            left.type(), left.llvm_type(),
+            std::shared_ptr< llvm::Value >(
+              ir_builder->CreateUDiv(
+                left.llvm_value().get(),
+                right.llvm_value().get()
+              ),
+              [context_]( llvm::Value* ){}
+            )
+          );
+        }
+      }
     }
     expression divides(
       const std::shared_ptr< llvm::LLVMContext > &context,

@@ -20,7 +20,8 @@
 #include <dlambda/proto/node/convert_args.hpp>
 #include <dlambda/proto/node/terminal.hpp>
 #include <dlambda/proto/node/any.hpp>
-#include <boost/preprocessor.hpp>
+#include <boost/preprocessor/seq/for_each.hpp>
+#include <boost/preprocessor/seq/filter.hpp>
 
 namespace dlambda {
   namespace proto {

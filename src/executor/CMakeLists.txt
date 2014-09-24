@@ -15,3 +15,8 @@ add_executable(
   test.cpp
 )
 target_link_libraries( executor_test ${Boost_LIBRARIES} ${LLVM_ALL_LIBS} dlambda_type_traits dlambda_proto dlambda_compiler dlambda_executor )
+add_executable(
+  executor_test2
+  test2.cpp
+)
+target_link_libraries( executor_test2 ${Boost_LIBRARIES} ${LLVM_ALL_LIBS} dlambda_type_traits dlambda_proto dlambda_compiler dlambda_executor )

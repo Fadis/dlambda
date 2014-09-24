@@ -23,7 +23,7 @@ int main() {
   module.create_function< int&( int& ) >( "a2" )[
     ++ param( 0 )
   ];
-  module.create_function< void( int&, int, int, int, int& ) >( "a3" )[
+  module.create_function< void( int&, int, int, int, int* ) >( "a3" )[
     if_( param( 1 ) > 10 )[
       if_( param( 1 ) > 20 )[
         param( 0 ) = param( 2 ) * 2
@@ -37,7 +37,7 @@ int main() {
       ++param( 0 )
     ],
     for_( param( 0 ) = 0, param( 0 ) != 10, ++param( 0 ) )[
-      param( 4 ) *= 3
+      param( 4 )[ 5 ] *= 3
     ]
   ];
   dlambda::executor::module executable( module, "x86_64-pc-linux" );

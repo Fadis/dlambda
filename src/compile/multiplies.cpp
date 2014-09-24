@@ -22,6 +22,7 @@
 #include <dlambda/compiler/ir_builder.hpp>
 #include <dlambda/compiler/node/remove_reference.hpp>
 #include <dlambda/compiler/node/static_cast.hpp>
+#include <dlambda/exceptions.hpp>
 
 namespace dlambda {
   namespace compiler {
@@ -43,35 +44,7 @@ namespace dlambda {
             >
           >::type* = 0
         ) const {
-          const auto result_type = type_traits::usual_arithmetic_conversion( left.type(), right.type() );
-          const expression converted_left = static_cast_( context, ir_builder, result_type, left );
-          const expression converted_right = static_cast_( context, ir_builder, result_type, right );
-          const auto llvm_type = get_llvm_type( context, result_type );
-          const std::shared_ptr< llvm::LLVMContext > &context_ = context;
-          if( type_traits::is_floating_point( result_type ) ) {
-            return expression(
-              result_type, llvm_type,
-              std::shared_ptr< llvm::Value >(
-                ir_builder->CreateFMul(
-                  converted_left.llvm_value().get(),
-                  converted_right.llvm_value().get()
-                ),
-                [context_]( llvm::Value* ){}
-              )
-            );
-          }
-          else {
-            return expression(
-              result_type, llvm_type,
-              std::shared_ptr< llvm::Value >(
-                ir_builder->CreateMul(
-                  converted_left.llvm_value().get(),
-                  converted_right.llvm_value().get()
-                ),
-                [context_]( llvm::Value* ){}
-              )
-            );
-          }
+          return generate();
         }
         template< typename Left, typename Right >
         expression operator()(
@@ -85,14 +58,46 @@ namespace dlambda {
             >
           >::type* = 0
         ) const {
-          throw -1;
+          throw exceptions::invalid_expression();
         }
       private:
+        expression generate() const;
         std::shared_ptr< llvm::LLVMContext > context;
         std::shared_ptr< ir_builder_t > ir_builder;
         expression left;
         expression right;
       };
+      expression multiplies::generate() const {
+        const auto result_type = type_traits::usual_arithmetic_conversion( left.type(), right.type() );
+        const expression converted_left = static_cast_( context, ir_builder, result_type, left );
+        const expression converted_right = static_cast_( context, ir_builder, result_type, right );
+        const auto llvm_type = get_llvm_type( context, result_type );
+        const std::shared_ptr< llvm::LLVMContext > &context_ = context;
+        if( type_traits::is_floating_point( result_type ) ) {
+          return expression(
+            result_type, llvm_type,
+            std::shared_ptr< llvm::Value >(
+              ir_builder->CreateFMul(
+                converted_left.llvm_value().get(),
+                converted_right.llvm_value().get()
+              ),
+              [context_]( llvm::Value* ){}
+            )
+          );
+        }
+        else {
+          return expression(
+            result_type, llvm_type,
+            std::shared_ptr< llvm::Value >(
+              ir_builder->CreateMul(
+                converted_left.llvm_value().get(),
+                converted_right.llvm_value().get()
+              ),
+              [context_]( llvm::Value* ){}
+            )
+          );
+        }
+      }
     }
     expression multiplies(
       const std::shared_ptr< llvm::LLVMContext > &context,

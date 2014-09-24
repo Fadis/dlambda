@@ -13,7 +13,8 @@ namespace dlambda {
       struct is_promotable :
         public boost::mpl::or_<
           is_integral< Type >,
-          boost::is_same< Type, types::enum_ >
+          boost::is_same< Type, types::enum_ >,
+          boost::is_same< Type, types::bool_ >
         > {};
     }
     bool is_promotable( const type &type_ );

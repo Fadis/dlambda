@@ -24,45 +24,16 @@
 
 namespace dlambda {
   namespace compiler {
-    namespace node {
-      class remove_const_cast : public boost::static_visitor< expression > {
-      public:
-        remove_const_cast(
-          const std::shared_ptr< llvm::LLVMContext > &context_,
-          const std::shared_ptr< ir_builder_t > &ir_builder_,
-          const expression &value_
-        ) : context( context_ ), ir_builder( ir_builder_ ), value( value_ ) {}
-        template< typename T >
-        expression operator()(
-          const T &from, const T &to
-        ) const {
-          if( type_traits::remove_const( from ) == type_traits::remove_const( to ) )
-            return expression( to, value.llvm_type(), value.llvm_value() );
-          else
-            throw exceptions::invalid_cast();
-        }
-        template< typename From, typename To >
-        expression operator()(
-          const From &, const To &,
-          typename boost::enable_if<
-            boost::mpl::not_< boost::is_same< From, To > >
-          >::type* = 0
-        ) const {
-          throw exceptions::invalid_cast();
-        }
-      private:
-        std::shared_ptr< llvm::LLVMContext > context;
-        std::shared_ptr< ir_builder_t > ir_builder;
-        expression value;
-      };
-    }
     expression remove_const_cast(
-      const std::shared_ptr< llvm::LLVMContext > &context,
-      const std::shared_ptr< ir_builder_t > &ir_builder,
-      const type cast_to,
+      const std::shared_ptr< llvm::LLVMContext > &,
+      const std::shared_ptr< ir_builder_t > &,
+      const type to,
       const expression &value
     ) {
-      return apply_visitor( node::remove_const_cast( context, ir_builder, value ), value.type(), cast_to );
+      if( type_traits::remove_const( value.type() ) == type_traits::remove_const( to ) )
+        return expression( to, value.llvm_type(), value.llvm_value() );
+      else
+        throw exceptions::invalid_cast();
     }
   }
 }

@@ -3,7 +3,7 @@
 
 #include <array>
 #include <dlambda/proto/operators.hpp>
-#include <boost/preprocessor.hpp>
+#include <boost/preprocessor/seq/for_each.hpp>
 
 namespace dlambda {
   namespace proto {

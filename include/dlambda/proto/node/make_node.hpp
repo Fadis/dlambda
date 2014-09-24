@@ -37,7 +37,7 @@ namespace dlambda {
               >::type
             >,
             boost::mpl::not_<
-              boost::is_same< T, if_< Node > >
+              boost::is_same< typename boost::remove_reference< typename boost::remove_cv< T >::type >::type, if_< Node > >
             >
           >
         >::type
@@ -53,14 +53,14 @@ namespace dlambda {
       struct make_raw_node<
         Node, T,
         typename boost::enable_if<
-          boost::is_same< T, if_< Node > >
+          boost::is_same< typename boost::remove_reference< typename boost::remove_cv< T >::type >::type, if_< Node > >
         >::type
       > {
         typename Node::raw_node operator()( const typename boost::remove_reference< typename boost::remove_cv< T >::type >::type &value ) const {
-          return typename Node::raw_node( static_cast< if_else< Node > >( value ) );
+          return typename Node::raw_node( value.else_ );
         }
         typename Node::raw_node operator()( typename boost::remove_reference< typename boost::remove_cv< T >::type >::type &&value ) const {
-          return typename Node::raw_node( static_cast< if_else< Node > >( value ) );
+          return typename Node::raw_node( value.else_ );
         }
       };
       template< typename Node, typename T >

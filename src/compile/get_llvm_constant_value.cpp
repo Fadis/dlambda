@@ -24,6 +24,7 @@
 #include <dlambda/value.hpp>
 #include <dlambda/compiler/get_llvm_type.hpp>
 #include <dlambda/compiler/get_llvm_constant_value.hpp>
+#include <dlambda/exceptions.hpp>
 
 namespace dlambda {
   namespace compiler {
@@ -36,11 +37,11 @@ namespace dlambda {
         ) : context( context_ ), llvm_type( llvm_type_ ) {}
         template< typename ValueType >
         std::shared_ptr< llvm::Constant > operator()( const types::any_type&, const ValueType& ) {
-          throw -1;
+          throw exceptions::unexpected_type();
         }
         template< typename ValueType >
         std::shared_ptr< llvm::Constant > operator()( const types::void_&, const ValueType& ) {
-          throw -1;
+          throw exceptions::unexpected_type();
         }
         template< typename T, typename ValueType >
         std::shared_ptr< llvm::Constant > operator()(

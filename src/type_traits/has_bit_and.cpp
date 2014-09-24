@@ -5,17 +5,18 @@
 #include <boost/variant/static_visitor.hpp>
 #include <dlambda/type.hpp>
 #include <dlambda/type_traits/has_bit_and.hpp>
+#include <dlambda/exceptions.hpp>
 
 namespace dlambda {
   namespace type_traits {
     bool has_bit_and( const type& ) {
-      throw -1;
+      throw exceptions::not_implemented();
     }
     bool has_bit_and( const type&, const type& ) {
-      throw -1;
+      throw exceptions::not_implemented();
     }
     bool has_bit_and( const type&, const type&, const type& ) {
-      throw -1;
+      throw exceptions::not_implemented();
     }
   }
 }
